@@ -7,10 +7,17 @@ version '1.0.0'
 author 'Mista Putt'
 description 'from https://github.com/FiveM-Scripts/CorruptSnail-Gamemode.'
 
-shared_script "config.lua"
+shared_scripts {
+	"@mista-overlay/client/zones.lua",
+	"config.lua"
+}
+
+server_scripts {
+	"spawning/sv_zombies.lua",
+}
 
 client_scripts {
-	"@mista-overlay/client/zones.lua",
+	-- "@mista-overlay/client/zones.lua",
 	"cl_utils.lua",
 	"cl_entityenum.lua",
 	"cl_player.lua",

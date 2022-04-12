@@ -66,14 +66,28 @@ local function ZombifyPed(ped, tier, ambiance)
     SetPedHearingRange(ped, 9999.0)
     SetPedSeeingRange(ped, 50.0)
 
-    SetPedConfigFlag(ped, 224, true)
-    SetPedConfigFlag(ped, 281, true)
-    SetPedCombatAttributes(ped, 46, true)
-    SetPedCombatAttributes(ped, 5, true)
-    SetPedCombatAttributes(ped, 1, false)
-    SetPedCombatAttributes(ped, 0, false)
+    SetPedConfigFlag(ped, 224, true) -- PED_FLAG_MELEE_COMBAT 
+    SetPedConfigFlag(ped, 281, true) -- PED_FLAG_NO_WRITHE
+	
+    -- SetPedConfigFlag(ped, 100, true) -- PED_FLAG_DRUNK 
+    SetPedConfigFlag(ped, 166, true) -- PED_FLAG_INJURED_LIMP 
+    SetPedConfigFlag(ped, 170, true) -- PED_FLAG_INJURED_LIMP_2 
+    -- SetPedConfigFlag(ped, 187, true) -- PED_FLAG_INJURED_DOWN 
+	
+    SetPedCombatAttributes(ped, 46, true) -- BF_AlwaysFight
+    SetPedCombatAttributes(ped, 5, true) -- BF_CanFightArmedPedsWhenNotArmed
+    SetPedCombatAttributes(ped, 1, false) -- BF_CanUseVehicles
+    SetPedCombatAttributes(ped, 0, false) -- BF_CanUseCover 
+	
+	-- 0: CA_Poor
+	-- 1: CA_Average
+	-- 2: CA_Professional
     SetPedCombatAbility(ped, 2)
-    SetPedCombatRange(ped, 2)
+    
+	-- 0: CR_Near
+	-- 1: CR_Medium
+	-- 2: CR_Far
+	SetPedCombatRange(ped, 2)
 
     SetAiMeleeWeaponDamageModifier(9999.0)
     SetPedRagdollBlockingFlags(ped, 4)
@@ -85,7 +99,11 @@ local function ZombifyPed(ped, tier, ambiance)
 
     SetEntityHealth(ped, math.random(50, Config.Spawning.Zombies.MAX_HEALTH))
     
-	if tier > 3 then
+	ApplyPedDamagePack(ped,"BigHitByVehicle", 0.0, 9.0)
+	ApplyPedDamagePack(ped,"SCR_Dumpster", 0.0, 9.0)
+	ApplyPedDamagePack(ped,"SCR_Torture", 0.0, 9.0)
+	
+	if tier >= 3 then
 		SetEntityHealth(ped, math.random(200, Config.Spawning.Zombies.MAX_HEALTH))
 		SetPedArmour(ped, math.random(0, Config.Spawning.Zombies.MAX_ARMOR))
 	end
@@ -126,6 +144,7 @@ local function TrySpawnRandomZombie()
     end
 end
 
+local deadZombies = {}
 local function HandleExistingZombies()
     local mPlayerPed = PlayerPedId()
     local currentCloudTime = GetCloudTimeAsInt()
@@ -135,6 +154,22 @@ local function HandleExistingZombies()
         if pedData.IsZombie then
             local zombieCoords = GetEntityCoords(ped)
 
+			if IsPedDeadOrDying(ped) then
+				if GetPedSourceOfDeath(ped) == PlayerPedId() then
+					if deadZombies[ped] == nil then
+					
+						deadZombies[ped] = GetEntityCoords(ped, false)
+						
+						x, y, z = table.unpack(deadZombies[ped])
+						tier = overlay:GetZoneTier(GetNameOfZone(x, y, z))
+						
+						TriggerServerEvent("mo:OnZombieDeath", tier, deadZombies[ped])
+						
+						SetPedAsNoLongerNeeded(ped)
+					end
+				end
+			end
+			
             if Player.IsSpawnHost() and (IsPedDeadOrDying(ped) or not Utils.IsPosNearAPlayer(zombieCoords, Config.Spawning.Zombies.DESPAWN_DISTANCE)) then
                 SetPedAsNoLongerNeeded(ped)
             else
