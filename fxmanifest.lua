@@ -1,6 +1,8 @@
 fx_version 'adamant'
 game 'gta5'
 
+-- lua54 'yes'
+
 version '1.0.0'
 author 'Mista Putt'
 description 'from https://github.com/FiveM-Scripts/CorruptSnail-Gamemode.'
@@ -8,6 +10,7 @@ description 'from https://github.com/FiveM-Scripts/CorruptSnail-Gamemode.'
 shared_script "config.lua"
 
 client_scripts {
+	"@mista-overlay/client/zones.lua",
 	"cl_utils.lua",
 	"cl_entityenum.lua",
 	"cl_player.lua",

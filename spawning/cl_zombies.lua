@@ -1,3 +1,5 @@
+local overlay = exports["mista-overlay"]
+
 local ZOMBIE_IGNORE_COMBAT_TIMEOUT_DECOR = "_ZOMBIE_IGNORE_COMBAT_TIMEOUT"
 DecorRegister(ZOMBIE_IGNORE_COMBAT_TIMEOUT_DECOR, 3)
 
@@ -12,11 +14,53 @@ DecorRegister(ZOMBIE_TASK_DECOR, 3)
 
 local ZOMBIE_MODEL = GetHashKey(Config.Spawning.Zombies.ZOMBIE_MODEL)
 
+local function GetTierSlug(tier)
+	return "tier" .. tier
+end
+
+local function GetRandomWeightedModelInTier(tier, ambiance)
+	
+	local sum = 0
+	local zombies = Config.Spawning.Zombies.ZOMBIE_MODELS[GetTierSlug(tier)]
+	local selectedZombies = {}
+	
+	for _, item in pairs(zombies) do
+		if ambiance ~= nil and ambiance ~= "" then
+			if item[3] == ambiance or item[3] == "" then
+				sum = sum + item[2]
+				table.insert(selectedZombies, item) 
+			end
+		else
+			if item[3] == "" then
+				sum = sum + item[2]
+				table.insert(selectedZombies, item) 
+			end	
+		end	
+	end
+	
+	local rand = math.random(sum)
+	local winningKey
+	local winningIndex
+	
+	for _, item in pairs(selectedZombies) do
+		winningKey = item[1]	
+		winningIndex = _
+		rand = rand - item[2]
+		if rand <= 0 then break end
+	end
+	
+	local debugText = "tier: " .. tier .. " | ambiance: " .. ambiance .. " | Model: " .. selectedZombies[winningIndex][1] .. " | rarity: " .. selectedZombies[winningIndex][2] .. " | ambiance:" .. selectedZombies[winningIndex][3]	
+	-- exports.ox_inventory:notify({text = debugText})
+	-- print(debugText)
+	
+	return selectedZombies[winningIndex] ~= nil and selectedZombies[winningIndex][1] or "u_m_y_zombie_01"
+end
+
 local function AttrRollTheDice()
     return math.random(100) <= Config.Spawning.Zombies.ATTR_CHANCE
 end
 
-local function ZombifyPed(ped)
+local function ZombifyPed(ped, tier, ambiance)
     SetPedRelationshipGroupHash(ped, ZOMBIE_GROUP)
 
     SetPedHearingRange(ped, 9999.0)
@@ -39,9 +83,17 @@ local function ZombifyPed(ped)
     SetPedKeepTask(ped, true)
     TaskWanderStandard(ped, 10.0, 10)
 
-    SetEntityHealth(ped, math.random(200, Config.Spawning.Zombies.MAX_HEALTH))
-    SetPedArmour(ped, math.random(0, Config.Spawning.Zombies.MAX_ARMOR))
+    SetEntityHealth(ped, math.random(50, Config.Spawning.Zombies.MAX_HEALTH))
     
+	if tier > 3 then
+		SetEntityHealth(ped, math.random(200, Config.Spawning.Zombies.MAX_HEALTH))
+		SetPedArmour(ped, math.random(0, Config.Spawning.Zombies.MAX_ARMOR))
+	end
+    
+	if AttrRollTheDice() then
+        ApplyPedBlood(ped, 3, 0.0, 0.0, 0.0, "wound_sheet")
+    end
+	
     if AttrRollTheDice() then
         SetPedRagdollOnCollision(ped, true)
     end
@@ -61,8 +113,16 @@ local function TrySpawnRandomZombie()
             newZ = spawnPos.z - 1000.0
         end
 
+		-- GET CURRENT TIER PLAYER IS IN
+		x, y, z = table.unpack(GetEntityCoords(GetPlayerPed(-1), true))
+		local zone = GetNameOfZone(x, y, z)
+		
+		local tier = overlay:GetZoneTier(zone)
+		local ambiance = overlay:GetZoneAmbiance(zone)
+
+		ZOMBIE_MODEL = GetHashKey( GetRandomWeightedModelInTier(tier, ambiance) )
         local zombie = Utils.CreatePed(ZOMBIE_MODEL, 25, vector3(spawnPos.x, spawnPos.y, newZ), 0.0)
-        ZombifyPed(zombie)
+        ZombifyPed(zombie, tier, ambiance)
     end
 end
 
