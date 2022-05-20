@@ -1,13 +1,14 @@
--- if not lib then return end
+-- local ox_inventory = exports.ox_inventory
+-- local overlay = exports["mista_overlay"]
 
-local ox_inventory = exports.ox_inventory
-local overlay = exports["mista-overlay"]
--- local table = lib.table
+-- RegisterNetEvent("mo:OnZombieDeath")
+-- AddEventHandler("mo:OnZombieDeath", function(tier, coords)
+	-- local count = math.random(0, 3)
+	-- if(count > 0) then		
+		-- ox_inventory:CustomDrop('Zombie', overlay:GetLoot(tier, nil, count), coords, 5, 10000)	
+	-- end
+-- end)
 
-RegisterNetEvent("mo:OnZombieDeath")
-AddEventHandler("mo:OnZombieDeath", function(tier, coords)
-	local count = math.random(0, tier)
-	if(count > 0) then		
-		exports.ox_inventory:CustomDrop('Zombie', overlay:GetLoot(tier, count), coords)	
-	end
+AddEventHandler('entityRemoved', function(entity)
+	-- print("entity removed", entity)
 end)

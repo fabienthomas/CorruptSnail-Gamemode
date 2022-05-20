@@ -60,6 +60,15 @@ function Utils.GetRandomPosOffsetFromEntity(entity, minDistance, maxDistance)
     return GetOffsetFromEntityInWorldCoords(entity, x, y, 0.0)
 end
 
+function Utils.GetRandomObjectOffsetFromCoords(zone, minDistance, maxDistance)
+	local angle = math.random() * math.pi * 2
+    local r = math.sqrt(math.random()) * maxDistance
+    local x = r * math.cos(angle)
+    local y = r * math.sin(angle)
+
+    return GetObjectOffsetFromCoords(zone.Core[1],zone.Core[2],0.0, 0.0, x, y, 0.0)
+end
+
 function Utils.FindGoodSpawnPos(minDistance)
     local goodSpawnFound = false
     local maxDistance = Config.Spawning.Zombies.DESPAWN_DISTANCE
@@ -79,6 +88,41 @@ function Utils.FindGoodSpawnPos(minDistance)
         else
             for _, playerId in ipairs(GetActivePlayers()) do
                 if Utils.GetDistanceBetweenCoords(GetEntityCoords(GetPlayerPed(playerId)), newPos) < minDistance then
+                    goodSpawnFound = false
+                    tries = tries - 1
+
+                    break
+                end
+            end
+        end
+
+        if tries == 0 then
+            return nil
+        end
+    end
+
+    return newPos
+end
+
+function Utils.FindGoodStaticSpawnPos(zone,minDistance)
+	local goodSpawnFound = false
+    local maxDistance = zone.Radius -- Config.Spawning.Zombies.DESPAWN_DISTANCE
+    local newPos
+
+    local mPlayerPedId = PlayerPedId()
+
+    local tries = 5
+    while not goodSpawnFound do
+        goodSpawnFound = true
+
+        newPos = Utils.GetRandomObjectOffsetFromCoords(zone, minDistance, maxDistance)
+
+        if not newPos then
+            goodSpawnFound = false
+            tries = tries - 1
+        else
+            for _, playerId in ipairs(GetActivePlayers()) do
+                if Utils.GetDistanceBetweenCoords(zone.Core, newPos) < minDistance then
                     goodSpawnFound = false
                     tries = tries - 1
 
@@ -154,4 +198,8 @@ function Utils.LoadInteriors()
     
     RequestIpl("RC12B_Destroyed")
     RequestIpl("RC12B_HospitalInterior")
+end
+
+function Utils.jprint(data)
+	print(json.encode(data, {indent=true}))
 end

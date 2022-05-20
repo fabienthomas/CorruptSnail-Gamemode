@@ -3,7 +3,7 @@ Citizen.CreateThread(function()
 
     for _, safezone in ipairs(Config.Spawning.Safezones.SAFEZONES) do
         local blipCoords = safezone.Core
-        local blip = AddBlipForCoord(blipCoords[1], blipCoords[2], blipCoords[3])
+        local blip = AddBlipForCoord(safezone.Core.x, safezone.Core.y, 0.0)
 
         SetBlipSprite(blip, 487)
         SetBlipAsShortRange(blip, true)

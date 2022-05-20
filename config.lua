@@ -13,6 +13,10 @@ Config = {
     ENABLE_TRAFFIC = false,
 }
 
+function Config.jprint(value)
+	print(json.encode(value, {indent=true}))
+end
+
 Config.Spawning = {
     -- Min distance between players to decide one "host"
     HOST_DECIDE_DIST = 200.0
@@ -21,7 +25,7 @@ Config.Spawning = {
 -- ZOMBIES
 Config.Spawning.Zombies = {
     -- Max amount of spawned zombies at once by you
-    MAX_AMOUNT = 75,
+    MAX_AMOUNT = 1,
     -- Chance a zombie receives a special attributes (per attribute, 0 - 100)
     ATTR_CHANCE = 25,
     -- Max Health
@@ -98,13 +102,51 @@ Config.Spawning.Zombies = {
 	},
 }
 
+-- ZOMBIES STATIC ZONE
+Config.Spawning.Staticzones = {
+	{
+		Core = vector2(1690.3005, 2593.8862), -- Prison
+		Radius = 150,
+		Tier = 4,
+		Ambiance = "police2",
+		Max_amount = 75,
+		Wave = {
+			duration = 120000,
+			Timeout = 180000
+		}		
+	},
+	{
+		Core = vector2(-2092.5942, 3057.4155), -- Zancudo
+		Radius = 300,
+		Tier = 4,
+		Ambiance = "military",
+		Max_amount = 75,
+		Wave = {
+			duration = 120000,
+			Timeout = 180000
+		}		
+	},
+	{
+		Core = vector2(3530.2852, 3728.6631), -- Labo
+		Radius = 100,
+		Tier = 4,
+		Ambiance = "military",
+		Max_amount = 75,
+		Wave = {
+			duration = 120000,
+			Timeout = 180000
+		}		
+	}
+}
+
 -- SAFEZONE
 Config.Spawning.Safezones = {
     -- Safezones
     SAFEZONES = {
         {
             -- Sandy Shores Police Station
-            Core = { 1853.61, 3686.79 },
+            Core = vector2( 1853.61, 3686.79 ),
+			Radius = 20
         },
     }
 }

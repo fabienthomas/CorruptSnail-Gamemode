@@ -19,21 +19,25 @@ local function FetchPeds()
         local isZombie = relationshipGroup == ZOMBIE_GROUP
         local isGuard = relationshipGroup == SAFEZONE_GUARD_GROUP
         local combatTarget
-
+		local model
         if isZombie then
             zombieAmount = zombieAmount + 1
-
+			model = GetEntityModel(ped)
             for ped2 in EntityEnum.EnumeratePeds() do
                 if IsPedInCombat(ped, ped2) then
                     combatTarget = ped2
-
                     break
                 end
             end
         end
 
-        g_peds[ped] = {IsZombie = isZombie, RelationshipGroup = relationshipGroup, ZombieCombatTarget = combatTarget,
-            IsGuard = isGuard}
+        g_peds[ped] = {
+			IsZombie = isZombie, 
+			RelationshipGroup = relationshipGroup, 
+			ZombieCombatTarget = combatTarget, 
+			IsGuard = isGuard, 
+			model = model
+		}
 
         untilPause = untilPause - 1
         if untilPause < 0 then

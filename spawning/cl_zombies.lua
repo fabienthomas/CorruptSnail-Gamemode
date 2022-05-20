@@ -1,4 +1,10 @@
-local overlay = exports["mista-overlay"]
+if not lib then return end
+
+local ox_inventory = exports.ox_inventory
+
+local table = lib.table
+
+local overlay = exports["mista_overlay"]
 
 local ZOMBIE_IGNORE_COMBAT_TIMEOUT_DECOR = "_ZOMBIE_IGNORE_COMBAT_TIMEOUT"
 DecorRegister(ZOMBIE_IGNORE_COMBAT_TIMEOUT_DECOR, 3)
@@ -11,8 +17,6 @@ DecorRegister(ZOMBIE_TIME_UNTIL_SOUND_DECOR, 3)
 
 local ZOMBIE_TASK_DECOR = "_ZOMBIE_TASK"
 DecorRegister(ZOMBIE_TASK_DECOR, 3)
-
-local ZOMBIE_MODEL = GetHashKey(Config.Spawning.Zombies.ZOMBIE_MODEL)
 
 local function GetTierSlug(tier)
 	return "tier" .. tier
@@ -48,11 +52,7 @@ local function GetRandomWeightedModelInTier(tier, ambiance)
 		rand = rand - item[2]
 		if rand <= 0 then break end
 	end
-	
-	local debugText = "tier: " .. tier .. " | ambiance: " .. ambiance .. " | Model: " .. selectedZombies[winningIndex][1] .. " | rarity: " .. selectedZombies[winningIndex][2] .. " | ambiance:" .. selectedZombies[winningIndex][3]	
-	-- exports.ox_inventory:notify({text = debugText})
-	-- print(debugText)
-	
+
 	return selectedZombies[winningIndex] ~= nil and selectedZombies[winningIndex][1] or "u_m_y_zombie_01"
 end
 
@@ -89,7 +89,15 @@ local function ZombifyPed(ped, tier, ambiance)
 	-- 2: CR_Far
 	SetPedCombatRange(ped, 2)
 
-    SetAiMeleeWeaponDamageModifier(9999.0)
+	-- EXP
+	
+	SetPedAccuracy(ped, 100)
+	-- RegisterHatedTargetsAroundPed(ped, 50.0)
+
+	-- eof EXP
+
+    SetAiMeleeWeaponDamageModifier(2.0)
+	
     SetPedRagdollBlockingFlags(ped, 4)
     SetPedCanRagdollFromPlayerImpact(ped, false)
     SetPedCanPlayAmbientAnims(ped, false)
@@ -102,6 +110,10 @@ local function ZombifyPed(ped, tier, ambiance)
 	ApplyPedDamagePack(ped,"BigHitByVehicle", 0.0, 9.0)
 	ApplyPedDamagePack(ped,"SCR_Dumpster", 0.0, 9.0)
 	ApplyPedDamagePack(ped,"SCR_Torture", 0.0, 9.0)
+	ApplyPedDamagePack(ped,"Burnt_Ped_0", 0.0, 9.0)
+	ApplyPedDamagePack(ped,"Dirt_Mud", 0.0, 9.0)
+	ApplyPedDamagePack(ped,"Explosion_Large", 0.0, 9.0)
+	ApplyPedDamagePack(ped,"Explosion_Med", 0.0, 9.0)
 	
 	if tier >= 3 then
 		SetEntityHealth(ped, math.random(200, Config.Spawning.Zombies.MAX_HEALTH))
@@ -133,7 +145,7 @@ local function TrySpawnRandomZombie()
 
 		-- GET CURRENT TIER PLAYER IS IN
 		x, y, z = table.unpack(GetEntityCoords(GetPlayerPed(-1), true))
-		local zone = GetNameOfZone(x, y, z)
+		local zone = GetNameOfZone(x, y, z) -- native
 		
 		local tier = overlay:GetZoneTier(zone)
 		local ambiance = overlay:GetZoneAmbiance(zone)
@@ -144,6 +156,36 @@ local function TrySpawnRandomZombie()
     end
 end
 
+local function TrySpawnStaticZombie(zone)
+
+	local spawnPos = Utils.FindGoodStaticSpawnPos(zone,50)
+	 if spawnPos then
+		local playerPed = PlayerPedId()
+		local newZ = Utils.ZToGround(spawnPos)
+
+		if not newZ then
+			newZ = spawnPos.z - 1000.0
+		end
+
+		-- GET CURRENT TIER PLAYER IS IN
+		-- x, y, z = table.unpack(GetEntityCoords(GetPlayerPed(-1), true))
+		x, y, z = table.unpack(GetEntityCoords(playerPed, true))
+		local zone = GetNameOfZone(x, y, z) -- native
+		
+		local tier = overlay:GetZoneTier(zone)
+		local ambiance = overlay:GetZoneAmbiance(zone)
+
+		ZOMBIE_MODEL = GetHashKey( GetRandomWeightedModelInTier(tier, ambiance) )
+		local zombie = Utils.CreatePed(ZOMBIE_MODEL, 25, vector3(spawnPos.x, spawnPos.y, newZ), 0.0)
+		ZombifyPed(zombie, tier, ambiance)
+	end
+
+end
+
+local function jprint(data)
+	print(json.encode(data, {indent=true}))
+end
+
 local deadZombies = {}
 local function HandleExistingZombies()
     local mPlayerPed = PlayerPedId()
@@ -151,23 +193,29 @@ local function HandleExistingZombies()
 
     local untilPause = 10
     for ped, pedData in pairs(g_peds) do
+		
         if pedData.IsZombie then
             local zombieCoords = GetEntityCoords(ped)
 
 			if IsPedDeadOrDying(ped) then
+			
 				if GetPedSourceOfDeath(ped) == PlayerPedId() then
 					if deadZombies[ped] == nil then
 					
 						deadZombies[ped] = GetEntityCoords(ped, false)
 						
-						x, y, z = table.unpack(deadZombies[ped])
-						tier = overlay:GetZoneTier(GetNameOfZone(x, y, z))
+						x, y, z = table.unpack(GetEntityCoords(ped, false))
+						local name = GetNameOfZone(x, y, z)
 						
-						TriggerServerEvent("mo:OnZombieDeath", tier, deadZombies[ped])
+						if name ~= "" then
+
+							TriggerServerEvent("mista_loot:deadzombie:add", overlay:GetZoneTier(name), ped, pedData.model, deadZombies[ped], PedToNet(ped))
+						end
 						
 						SetPedAsNoLongerNeeded(ped)
 					end
 				end
+				
 			end
 			
             if Player.IsSpawnHost() and (IsPedDeadOrDying(ped) or not Utils.IsPosNearAPlayer(zombieCoords, Config.Spawning.Zombies.DESPAWN_DISTANCE)) then
@@ -178,10 +226,23 @@ local function HandleExistingZombies()
                 SetAmbientVoiceName(ped, "ALIENS")
                 DisablePedPainAudio(ped, true)
 
-                if not HasAnimSetLoaded("move_m@drunk@verydrunk") then
-                    RequestAnimSet("move_m@drunk@verydrunk")
-                end
-                SetPedMovementClipset(ped, "move_m@drunk@verydrunk", 0.5)
+				-- walk animations
+				walk = Config.Spawning.Zombies.ZOMBIES_WALKS[math.random(1, #Config.Spawning.Zombies.ZOMBIES_WALKS)]
+				
+				if not HasAnimSetLoaded(walk) then
+					RequestAnimSet(walk)
+				end
+				
+				while not HasAnimSetLoaded(walk) do
+					Citizen.Wait(1)
+				end
+				
+				SetPedMovementClipset(ped, walk, 0.5)
+
+                -- if not HasAnimSetLoaded("move_m@drunk@verydrunk") then
+                    -- RequestAnimSet("move_m@drunk@verydrunk")
+                -- end
+                -- SetPedMovementClipset(ped, "move_m@drunk@verydrunk", 0.5)
 
                 SetBlockingOfNonTemporaryEvents(ped, zombieCombatTimeout > currentCloudTime)
 
@@ -193,14 +254,17 @@ local function HandleExistingZombies()
 
                 local zombieGameTarget = pedData.ZombieCombatTarget
 
-                if zombieGameTarget and zombieCombatTimeout <= currentCloudTime
+				if zombieGameTarget and zombieCombatTimeout <= currentCloudTime
                     and Utils.GetDistanceBetweenCoords(GetEntityCoords(zombieGameTarget), zombieCoords) > 2.0 then
-                    DecorSetInt(ped, ZOMBIE_IGNORE_COMBAT_TIMEOUT_DECOR, currentCloudTime + 20)
-                    DecorSetInt(ped, ZOMBIE_TARGET_DECOR, zombieGameTarget)
-                    DecorSetInt(ped, ZOMBIE_TASK_DECOR, 0)
-
-                    SetBlockingOfNonTemporaryEvents(ped, true)
-                end
+					
+					if mPlayerPed == zombieGameTarget and not Player.IsInSafeZone() then					
+						DecorSetInt(ped, ZOMBIE_IGNORE_COMBAT_TIMEOUT_DECOR, currentCloudTime + 20)
+						DecorSetInt(ped, ZOMBIE_TARGET_DECOR, zombieGameTarget)
+						DecorSetInt(ped, ZOMBIE_TASK_DECOR, 0)
+						SetBlockingOfNonTemporaryEvents(ped, true)	
+					end
+					
+				end
 
                 local zombieDecorTarget = DecorGetInt(ped, ZOMBIE_TARGET_DECOR)
 
@@ -242,6 +306,47 @@ local function HandleExistingZombies()
     end
 end
 
+-- Static Zones
+Utils.CreateLoadedInThread(function()
+    local _timer,_cooldown = 0,0
+	local canSpawnStaticZombies = false
+	while true do
+        Wait(1000)	
+
+		local isInStaticzone, zone = Player.IsInStaticZone()
+		
+		if isInStaticzone then -- player is in a static zone
+		
+			if canSpawnStaticZombies and g_zombieAmount <= zone.Max_amount then -- spawn enabled
+				
+				if _timer ~= 0 then -- wave in progress
+					TrySpawnStaticZombie(zone)		
+					_timer = _timer - 1 -- decrement timer
+				else -- end of wave
+					_cooldown = zone.Wave.timeout
+					canSpawnStaticZombies = false
+				end
+			
+			else -- spawn not enabled, enable
+				if _cooldown == 0 then
+					canSpawnStaticZombies = true
+					_timer = zone.Wave.duration
+				else
+					_cooldown = _cooldown - 1 -- decrement cooldown
+				end
+			end
+			
+		else -- player is not in a static zone
+			if canSpawnStaticZombies then -- spawn enabled, disable & reset
+				canSpawnStaticZombies = false
+				_timer,_cooldown = 0,0
+			end
+		end
+		
+	end
+end)
+
+-- Around player
 Utils.CreateLoadedInThread(function()
     while true do
         Wait(250)
@@ -257,7 +362,6 @@ end)
 Utils.CreateLoadedInThread(function()
     while true do
         Wait(10000)
-
         local untilPause = 10
         for ped, pedData in pairs(g_peds) do
             if not pedData.IsZombie then
@@ -276,3 +380,7 @@ Utils.CreateLoadedInThread(function()
         end
     end
 end)
+
+exports('zombiesmodels', function(data, slot)
+	return Config.Spawning.Zombies.ZOMBIE_MODELS
+ end)
