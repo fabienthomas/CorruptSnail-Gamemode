@@ -18,7 +18,6 @@ server_scripts {
 }
 
 client_scripts {
-	-- "@mista_overlay/client/zones.lua",
 	"cl_utils.lua",
 	"cl_entityenum.lua",
 	"cl_player.lua",

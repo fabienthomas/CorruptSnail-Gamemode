@@ -13,10 +13,6 @@ Config = {
     ENABLE_TRAFFIC = false,
 }
 
-function Config.jprint(value)
-	print(json.encode(value, {indent=true}))
-end
-
 Config.Spawning = {
     -- Min distance between players to decide one "host"
     HOST_DECIDE_DIST = 200.0
