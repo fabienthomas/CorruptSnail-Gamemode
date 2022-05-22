@@ -21,7 +21,7 @@ Config.Spawning = {
 -- ZOMBIES
 Config.Spawning.Zombies = {
     -- Max amount of spawned zombies at once by you
-    MAX_AMOUNT = 1,
+    MAX_AMOUNT = 50,
     -- Chance a zombie receives a special attributes (per attribute, 0 - 100)
     ATTR_CHANCE = 25,
     -- Max Health
@@ -143,6 +143,11 @@ Config.Spawning.Safezones = {
             -- Sandy Shores Police Station
             Core = vector2( 1853.61, 3686.79 ),
 			Radius = 20
+        },
+		{
+            -- LS Custom
+            Core = vector2( -371.9899, -129.5436 ),
+			Radius = 50
         },
     }
 }
